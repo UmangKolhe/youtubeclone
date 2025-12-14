@@ -18,9 +18,9 @@ const Head = () => {
   const dispatch = useDispatch();
 
   const debounceRef = useRef(null);
-  const blurTimeoutRef = useRef(null);
+  const searchRef = useRef(null);
 
-  /* ---------------- SEARCH WITH DEBOUNCE ---------------- */
+  /* ---------------- DEBOUNCE SEARCH ---------------- */
   useEffect(() => {
     if (!searchQuery.trim()) {
       setSuggestions([]);
@@ -33,12 +33,12 @@ const Head = () => {
       } else {
         fetchSuggestions();
       }
-    }, 250);
+    }, 300);
 
     return () => clearTimeout(debounceRef.current);
-  }, [searchQuery]);
+  }, [searchQuery, searchCache]);
 
-  /* ---------------- API CALL ---------------- */
+  /* ---------------- FETCH API ---------------- */
   const fetchSuggestions = async () => {
     try {
       const res = await fetch(YOUTUBE_SEARCH_API + searchQuery);
@@ -51,16 +51,33 @@ const Head = () => {
         })
       );
     } catch (err) {
-      console.error("Suggestion error:", err);
+      console.error(err);
     }
   };
 
-  /* ---------------- MENU TOGGLE ---------------- */
+  /* ---------------- CLICK OUTSIDE ---------------- */
+  useEffect(() => {
+    const handleOutside = (e) => {
+      if (searchRef.current && !searchRef.current.contains(e.target)) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutside);
+    document.addEventListener("touchstart", handleOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+      document.removeEventListener("touchstart", handleOutside);
+    };
+  }, []);
+
+  /* ---------------- MENU ---------------- */
   const handleMenuToggle = () => {
     dispatch(toggleMenu());
   };
 
-  /* ---------------- SELECT SUGGESTION ---------------- */
+  /* ---------------- SELECT ---------------- */
   const handleSelect = (value) => {
     setSearchQuery(value);
     setShowSuggestions(false);
@@ -74,8 +91,7 @@ const Head = () => {
           onClick={handleMenuToggle}
           className="w-6 md:w-8 cursor-pointer"
           alt="menu"
-          src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOEAAADhCAMAAAAJbSJIAAAAYFBMVEX///8AAADPz89LS0uWlpb39/eCgoKQkJCxsbH29vZiYmI4ODh0dHTX19empqbFxcXr6+sQEBDh4eEbGxu7u7s0NDR6enpXV1egoKDJyclvb28ODg6IiIhcXFwfHx8ZGRnwNjATAAACZUlEQVR4nO3dCW7CMBCFYRdIw75vbSm9/y2rqKgUVRo72NJoxv93gveUkGBj7BAAAAAAAAAAAAAAAAAAoAKrdjq0Y9qu+tVbH1/sOa7TC7baYZ/UJvZrZtpJnzZrkgputHNm2KRUPGinzHKIF3zVzpjpNVZwq50w2zbScKodMNtULjjRzlfARGw41o5XwFhsONeOV8BcbGj3ZX83Extqpyui8oY77XQFXMWGJ+14BZzEhlbHTX/JY6iBdrwCFmJDD48auWBYaufLtow0NP803cUKhoV2xEyRT6H9+zR6j3bO2ikznFMKhrDSzvm05GnhxuYgap40l3izHlmbcpuNekx53y7kdmDHts/lAwAAAAAAAAAAxjRvy5Edy7e+P1zsh9q/JfU23PfoN7hqx33KdZBa0O5i9ugy9h+f2jkzfKYUfNdOmeU9XtD6Sm95lXfwsFhfXqofwkU7YLZLpKF2vgLkgnYXC93Jy4bsvgrv5JeivS9r/w3Fhh/a8QrYiA210xVR+TX0/zn0/yz1/z708KiRC1bwvdT+2CI6JeV+fFjBGL+CeRrLT5vEubYK5kuD/znvjvffLQAAAAAAAAAAgCHO94myt9fXoddeXxOj+7XFFkD/srtsKHHPPff7Jrrf+9L//qVf2hEzRfegtX2PdmL3qXa+AuSC/vfz9r8nu/999a3v5t2Rn6ba6YqovKH/c2ZsDpseyWcFWV/l3ZFXettfqh/9I7D7c9cqODvP/H+7EhazW5tke5RwhmVoLI+Bk84h9X+WbLA7hko9DzhUcKZzx/m53AAAAAAAAAAAAAAAAABg0zfn21Nf0tdOJAAAAABJRU5ErkJggg=="
-        />
+          src="https://t3.ftcdn.net/jpg/01/09/45/80/360_F_109458015_QsWmchlzuwCZPqIUWR7HcTDsbbptejRv.jpg" />
 
         <Link to="/">
           <img
@@ -87,7 +103,10 @@ const Head = () => {
       </div>
 
       {/* CENTER SEARCH */}
-      <div className="relative col-span-7 sm:col-span-6 flex justify-center">
+      <div
+        ref={searchRef}
+        className="relative col-span-7 sm:col-span-6 flex justify-center"
+      >
         <div className="flex w-full max-w-xl">
           <Input
             type="search"
@@ -95,11 +114,6 @@ const Head = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => setShowSuggestions(true)}
-            onBlur={() => {
-              blurTimeoutRef.current = setTimeout(() => {
-                setShowSuggestions(false);
-              }, 150);
-            }}
             className="rounded-l-full"
           />
 
@@ -109,30 +123,13 @@ const Head = () => {
         </div>
 
         {showSuggestions && suggestions.length > 0 && (
-          <div
-            className="
-              absolute top-full mt-2
-              left-1/2 -translate-x-1/2
-              w-[96vw] max-w-[320px]
-              sm:max-w-sm md:max-w-lg lg:max-w-xl
-              bg-white shadow-xl rounded-xl z-50
-              border border-gray-200
-              max-h-[45vh] overflow-y-auto
-            "
-          >
+          <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-[96vw] max-w-[320px] sm:max-w-sm md:max-w-lg lg:max-w-xl bg-white shadow-xl rounded-xl z-50 border border-gray-200 max-h-[45vh] overflow-y-auto">
             <ul>
               {suggestions.map((s, i) => (
                 <li
                   key={s + i}
-                  className="
-                    flex items-center gap-3
-                    px-4 py-3 text-sm
-                    cursor-pointer
-                    hover:bg-gray-100
-                    active:bg-gray-200
-                  "
-                  onMouseDown={() => handleSelect(s)}
-                  onTouchStart={() => handleSelect(s)}
+                  className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-100 active:bg-gray-200"
+                  onClick={() => handleSelect(s)}
                 >
                   <IoSearch size={14} className="text-gray-500" />
                   <span className="truncate">{s}</span>
