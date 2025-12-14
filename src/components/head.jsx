@@ -47,7 +47,7 @@ const Head = () => {
   }
 
   return (
-    <div className="  grid grid-cols-12 items-center w-full max-w-[1480px] mx-auto px-2 sm:px-4 gap-2 py-2">
+    <div className=" bg-red-700  grid grid-cols-12 items-center w-full max-w-[1480px] mx-auto px-2 sm:px-4 gap-2 py-2">
       {/* LEFT */}
       <div className="col-span-3 flex items-center justify-start space-x-2">
         <img
